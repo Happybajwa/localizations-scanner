@@ -58,7 +58,7 @@ Create a `scan.json` file in your workspace root:
 {
   "localizationFile": "src/locales/en-NZ.json",
   "include": ["src/**/*.{ts,tsx,js,jsx}"],
-  "keyPattern": "t\\(['\"`]([a-zA-Z0-9_.]+)['\"`]\\)",
+  "keyPattern": "\\bt\\(['"`]([a-zA-Z0-9_.]+)['"`]\\)",
   "ignore": ["**/*.test.{ts,tsx,js,jsx}", "**/*.spec.{ts,tsx,js,jsx}"]
 }
 ```
@@ -109,7 +109,7 @@ The extension will identify `home.title` as a missing key and display it in the 
 {
   "localizationFile": "src/i18n/en.json",
   "include": ["src/**/*.{js,jsx,ts,tsx}"],
-  "keyPattern": "t\\(['\"`]([a-zA-Z0-9_.]+)['\"`]\\)",
+  "keyPattern": "\\bt\\(['"`]([a-zA-Z0-9_.]+)['"`]\\)",
   "ignore": ["**/*.test.{js,jsx,ts,tsx}", "**/mocks/**"]
 }
 ```

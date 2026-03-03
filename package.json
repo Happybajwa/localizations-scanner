@@ -2,7 +2,7 @@
   "name": "localizations-scanner",
   "displayName": "Localization Scanner",
   "description": "Scan your codebase to detect localization keys used in code but missing from your localization files",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "publisher": "devharry",
   "author": {
     "name": "dev_harry",

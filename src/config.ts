@@ -93,7 +93,7 @@ export async function promptCreateConfig(): Promise<void> {
         const defaultConfig: ScanConfig = {
             localizationFile: 'src/locales/en-NZ.json',
             include: ['src/**/*.{ts,tsx,js,jsx}'],
-            keyPattern: "t\\(['\"`]([a-zA-Z0-9_.]+)['\"`]\\)",
+            keyPattern: '\\bt\\([\'"`]([a-zA-Z0-9_.]+)[\'"`]\\)',
             ignore: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}']
         };
 
