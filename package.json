@@ -3,7 +3,7 @@
   "displayName": "Localization Scanner",
   "description": "Scan your codebase to detect localization keys used in code but missing from your localization files",
   "version": "1.0.0",
-  "publisher": "dev_harry",
+  "publisher": "devharry",
   "author": {
     "name": "dev_harry",
     "email": "devharry2024@gmail.com"
