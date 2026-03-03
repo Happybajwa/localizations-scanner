@@ -28,7 +28,7 @@ export async function scanCodebase(
     // Find all matching files
     const defaultIgnore = ['**/node_modules/**', '**/dist/**', '**/build/**', '**/.git/**'];
     const allIgnorePatterns = ignorePatterns ? [...defaultIgnore, ...ignorePatterns] : defaultIgnore;
-    
+
     const files = await fg(includePatterns, {
         cwd: workspaceRoot,
         absolute: true,
