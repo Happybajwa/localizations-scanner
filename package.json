@@ -3,10 +3,36 @@
   "displayName": "Localization Scanner",
   "description": "Scan your codebase to detect localization keys used in code but missing from your localization files",
   "version": "1.0.0",
+  "publisher": "Happybajwa",
+  "author": {
+    "name": "Happybajwa"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Happybajwa/localizations-scanner.git"
+  },
+  "homepage": "https://github.com/Happybajwa/localizations-scanner#readme",
+  "bugs": {
+    "url": "https://github.com/Happybajwa/localizations-scanner/issues"
+  },
+  "keywords": [
+    "localization",
+    "i18n",
+    "internationalization",
+    "translation",
+    "missing keys",
+    "scanner",
+    "react",
+    "vue",
+    "typescript",
+    "javascript"
+  ],
   "engines": {
     "vscode": "^1.109.0"
   },
   "categories": [
+    "Linters",
     "Other"
   ],
   "icon": "icon.png",
@@ -18,7 +44,7 @@
         {
           "id": "localizationsScanner",
           "title": "Localizations Scanner",
-          "icon": "$(globe)"
+          "icon": "icon.svg"
         }
       ]
     },
