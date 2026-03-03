@@ -36,14 +36,19 @@ export async function scanCodebase(
     });
 
     for (const filePath of files) {
-        const content = fs.readFileSync(filePath, 'utf-8');
-        const usages = extractKeysFromFile(content, filePath, regex);
+        try {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            const usages = extractKeysFromFile(content, filePath, regex);
 
-        for (const usage of usages) {
-            if (!keyUsageMap.has(usage.key)) {
-                keyUsageMap.set(usage.key, []);
+            for (const usage of usages) {
+                if (!keyUsageMap.has(usage.key)) {
+                    keyUsageMap.set(usage.key, []);
+                }
+                keyUsageMap.get(usage.key)!.push(usage);
             }
-            keyUsageMap.get(usage.key)!.push(usage);
+        } catch (error) {
+            // Skip files that can't be read (binary, permission issues, etc.)
+            continue;
         }
     }
 
