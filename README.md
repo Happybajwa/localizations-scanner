@@ -58,10 +58,12 @@ Create a `scan.json` file in your workspace root:
 {
   "localizationFile": "src/locales/en-NZ.json",
   "include": ["src/**/*.{ts,tsx,js,jsx}"],
-  "keyPattern": "\\bt\\(['"`]([a-zA-Z0-9_.]+)['"`]\\)",
+  "keyPattern": "\\bt\\(['\"]([a-zA-Z0-9_.]+)['\"]\\)",
   "ignore": ["**/*.test.{ts,tsx,js,jsx}", "**/*.spec.{ts,tsx,js,jsx}"]
 }
 ```
+
+> **Note**: The pattern above matches single and double quotes. To also match template literals (backticks), use: `['"`]`
 
 Or use the "Create scan.json" button in the sidebar to generate a template.
 
@@ -109,7 +111,7 @@ The extension will identify `home.title` as a missing key and display it in the 
 {
   "localizationFile": "src/i18n/en.json",
   "include": ["src/**/*.{js,jsx,ts,tsx}"],
-  "keyPattern": "\\bt\\(['"`]([a-zA-Z0-9_.]+)['"`]\\)",
+  "keyPattern": "\\bt\\(['\"]([a-zA-Z0-9_.]+)['\"]\\)",
   "ignore": ["**/*.test.{js,jsx,ts,tsx}", "**/mocks/**"]
 }
 ```
@@ -120,7 +122,7 @@ The extension will identify `home.title` as a missing key and display it in the 
 {
   "localizationFile": "src/locales/en.json",
   "include": ["src/**/*.vue"],
-  "keyPattern": "\\$t\\(['\"`]([a-zA-Z0-9_.]+)['\"`]\\)",
+  "keyPattern": "\\$t\\(['\"]([a-zA-Z0-9_.]+)['\"]\\)",
   "ignore": ["**/__tests__/**"]
 }
 ```

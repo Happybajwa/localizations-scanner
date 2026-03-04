@@ -5,6 +5,13 @@ All notable changes to the Localization Scanner extension will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.4] - 2026-03-04
+
+### Fixed
+- Fixed README markdown rendering issue on VS Code Marketplace
+- Simplified regex pattern examples to prevent backticks being rendered as links
+- Added note about template literal support
+
 ## [1.0.3] - 2026-03-04
 
 ### Fixed
