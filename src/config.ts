@@ -4,15 +4,17 @@ import * as vscode from 'vscode';
 
 export interface HardcodedStringsConfig {
     enabled: boolean;
-    ignoreStrings?: string[];
+    include?: string[];  // Files to scan for hardcoded strings (glob patterns or file paths). Defaults to main include if not specified.
+    ignoreFilePaths?: string[];   // Files to EXCLUDE from hardcoded string scanning (glob patterns or file paths like "src/demo.tsx")
+    ignoreStrings?: string[];  // Specific string content to ignore (e.g., ["test", "debug"])
     minLength?: number;
 }
 
 export interface ScanConfig {
     localizationFile: string;
-    include: string[];
-    keyPattern: string;
-    ignore?: string[];
+    include: string[];   // Files to scan for missing localization keys (glob patterns)
+    keyPattern: string;  // Regex pattern to extract localization keys from code
+    ignoreFilePaths?: string[];   // Files to EXCLUDE from localization scanning (glob patterns or file paths like "src/locales/en-NZ.json")
     hardcodedStrings?: HardcodedStringsConfig;
 }
 
@@ -61,8 +63,8 @@ function validateConfig(config: any): void {
         throw new Error('scan.json must contain a "keyPattern" string property');
     }
 
-    if (config.ignore !== undefined && !Array.isArray(config.ignore)) {
-        throw new Error('scan.json "ignore" property must be an array if provided');
+    if (config.ignoreFilePaths !== undefined && !Array.isArray(config.ignoreFilePaths)) {
+        throw new Error('scan.json "ignoreFilePaths" property must be an array if provided');
     }
 
     // Validate that keyPattern contains a capture group
@@ -101,9 +103,11 @@ export async function promptCreateConfig(): Promise<void> {
             localizationFile: 'src/locales/en-NZ.json',
             include: ['src/**/*.{ts,tsx,js,jsx}'],
             keyPattern: '\\bt\\([\'"`]([a-zA-Z0-9_.]+)[\'"`]\\)',
-            ignore: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}'],
+            ignoreFilePaths: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}'],  // Files to ignore for LOCALIZATION scanning
             hardcodedStrings: {
                 enabled: false,
+                include: ['src/**/*.{ts,tsx,js,jsx}'],
+                ignoreFilePaths: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}'],  // Files to ignore for HARDCODED STRING scanning
                 minLength: 3,
                 ignoreStrings: ['test', 'debug', 'error', 'warning', 'info']
             }

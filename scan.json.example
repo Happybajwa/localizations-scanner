@@ -2,5 +2,20 @@
   "localizationFile": "src/locales/en-NZ.json",
   "include": ["src/**/*.{ts,tsx,js,jsx}"],
   "keyPattern": "\\bt\\(['"`]([a-zA-Z0-9_.]+)['"`]\\)",
-  "ignore": ["**/*.test.{ts,tsx,js,jsx}", "**/*.spec.{ts,tsx,js,jsx}"]
+  "ignoreFilePaths": [
+    "**/*.test.{ts,tsx,js,jsx}",
+    "**/*.spec.{ts,tsx,js,jsx}",
+    "src/demo.tsx"
+  ],
+  "hardcodedStrings": {
+    "enabled": true,
+    "include": ["src/**/*.{ts,tsx,js,jsx}"],
+    "ignoreFilePaths": [
+      "**/*.test.{ts,tsx,js,jsx}",
+      "**/*.spec.{ts,tsx,js,jsx}",
+      "src/locales/en-NZ.json"
+    ],
+    "minLength": 3,
+    "ignoreStrings": ["test", "debug", "error", "warning", "info"]
+  }
 }

@@ -5,6 +5,48 @@ All notable changes to the Localization Scanner extension will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.3] - 2026-03-05
+
+### Added
+- **Separate ignore configurations** - Now supports separate `ignoreFilePaths` arrays for localization scanning vs hardcoded string scanning
+  - `ignoreFilePaths` at root for localization key scanning
+  - `hardcodedStrings.ignoreFilePaths` for hardcoded string scanning
+  - Both support glob patterns (`**/*.test.tsx`) AND direct file paths (`src/demo.tsx`)
+- **Direct file path support** - Both ignore arrays now accept absolute and relative file paths alongside glob patterns
+- **Professional configuration naming** - Renamed `ignore` to `ignoreFilePaths` for clarity and professionalism
+
+### Fixed
+- **Import type statement false positive** - No longer detects "Types" from `import type { IPayload } from "../Types"`
+  - Added TypeScript `import type` syntax detection
+- **Arrow function comparison false positive** - No longer detects "(current" from `(current) => (current < 3 ? current + 1 : current)`
+  - Added comparison operator detection (`<`, `>`, `<=`, `>=`) before JSX text extraction
+  - Skips lines with ternary operators containing comparison logic
+- **Styled-components CSS value false positive** - No longer detects CSS values like `"1px solid var(--color-grey30)"`
+  - Enhanced CSS property detection to recognize styled-components context
+  - Added pattern matching for CSS units (px, em, rem, vh, vw, %)
+  - Added pattern matching for CSS functions (var(), calc(), rgb(), rgba())
+  - Added pattern matching for CSS keywords (solid, dashed, dotted, none, auto, inherit)
+  - Added pattern matching for hex colors (#fff, #000000)
+
+### Improved
+- **Better path normalization** - Cross-platform path handling with forward slash normalization
+- **Enhanced file filtering** - Separates glob patterns from direct paths for more efficient scanning
+- **Configuration validation** - Better error messages for configuration issues
+
+### Changed
+- **Breaking change**: Configuration field renamed from `ignore` to `ignoreFilePaths`
+  - Update your `scan.json`: change `"ignore": []` to `"ignoreFilePaths": []`
+  - Both localization and hardcoded string configs use `ignoreFilePaths` now
+
+### Documentation
+- Completely rewritten README for clarity and professionalism
+- Added tables for configuration options
+- Added collapsible framework examples (React, Vue, Next.js)
+- Reduced verbosity while maintaining all essential information
+- Updated scan.json.example with new configuration structure
+- Added fix-json.ps1 helper script to examples for UTF-8 BOM issues
+- Re-packaged test workspace with updated configuration files
+
 ## [2.0.2] - 2026-03-05
 
 ### Fixed

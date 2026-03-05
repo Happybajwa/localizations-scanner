@@ -70,7 +70,7 @@ async function scanForMissingKeys(treeProvider: MissingKeysTreeProvider): Promis
 
 				// Scan codebase for missing keys
 				progress.report({ message: 'Scanning for missing keys...' });
-				const usedKeys = await scanCodebase(workspaceRoot, config.include, config.keyPattern, config.ignore);
+				const usedKeys = await scanCodebase(workspaceRoot, config.include, config.keyPattern, config.ignoreFilePaths);
 				progress.report({ message: 'Comparing keys...' });
 				const missingKeys = findMissingKeys(usedKeys, localizationKeys);
 

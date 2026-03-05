@@ -45,15 +45,15 @@ suite('Config Test Suite', () => {
             localizationFile: 'src/locales/en.json',
             include: ['src/**/*.ts'],
             keyPattern: "t\\(['\"`]([a-zA-Z0-9_.]+)['\"`]\\)",
-            ignore: ['**/*.test.ts', '**/*.spec.ts']
+            ignoreFilePaths: ['**/*.test.ts', '**/*.spec.ts']
         };
         fs.writeFileSync(configPath, JSON.stringify(testConfig), 'utf-8');
 
         const config = loadConfig(tempDir);
 
-        assert.ok(config.ignore);
-        assert.strictEqual(config.ignore!.length, 2);
-        assert.strictEqual(config.ignore![0], '**/*.test.ts');
+        assert.ok(config.ignoreFilePaths);
+        assert.strictEqual(config.ignoreFilePaths!.length, 2);
+        assert.strictEqual(config.ignoreFilePaths![0], '**/*.test.ts');
     });
 
     test('should throw error when scan.json not found', () => {

@@ -13,27 +13,61 @@ export interface KeyUsage {
  * @param workspaceRoot The absolute path to the workspace root
  * @param includePatterns Array of glob patterns to match files
  * @param keyPattern Regex pattern with capture group to extract keys
- * @param ignorePatterns Optional array of glob patterns to ignore
+ * @param ignoreFilePaths Optional array of file paths or glob patterns to ignore
  * @returns Map of keys to array of file paths where they are used
  */
 export async function scanCodebase(
     workspaceRoot: string,
     includePatterns: string[],
     keyPattern: string,
-    ignorePatterns?: string[]
+    ignoreFilePaths?: string[]
 ): Promise<Map<string, KeyUsage[]>> {
     const keyUsageMap = new Map<string, KeyUsage[]>();
     const regex = new RegExp(keyPattern, 'g');
 
     // Find all matching files
+    // Supports both glob patterns (**/*.test.tsx) and direct file paths (src/locales/en-NZ.json)
     const defaultIgnore = ['**/node_modules/**', '**/dist/**', '**/build/**', '**/.git/**'];
-    const allIgnorePatterns = ignorePatterns ? [...defaultIgnore, ...ignorePatterns] : defaultIgnore;
 
-    const files = await fg(includePatterns, {
+    // Separate glob patterns from direct file paths
+    const globPatterns: string[] = [];
+    const directPaths: string[] = [];
+
+    if (ignoreFilePaths) {
+        for (const pattern of ignoreFilePaths) {
+            if (pattern.includes('*') || pattern.includes('?') || pattern.includes('[')) {
+                // It's a glob pattern
+                globPatterns.push(pattern);
+            } else {
+                // It's a direct file path
+                directPaths.push(pattern);
+            }
+        }
+    }
+
+    const allIgnorePatterns = [...defaultIgnore, ...globPatterns];
+
+    let files = await fg(includePatterns, {
         cwd: workspaceRoot,
         absolute: true,
         ignore: allIgnorePatterns
     });
+
+    // Filter out direct file paths (normalize paths for comparison)
+    if (directPaths.length > 0) {
+        const normalizedIgnorePaths = directPaths.map((p: string) => {
+            // Normalize to use forward slashes and remove leading ./
+            const normalized = path.normalize(path.join(workspaceRoot, p)).replace(/\\/g, '/');
+            return normalized;
+        });
+
+        files = files.filter((file: string) => {
+            const normalizedFile = file.replace(/\\/g, '/');
+            return !normalizedIgnorePaths.some((ignorePath: string) =>
+                normalizedFile === ignorePath || normalizedFile.endsWith('/' + ignorePath)
+            );
+        });
+    }
 
     for (const filePath of files) {
         try {

@@ -13,7 +13,9 @@ export interface HardcodedString {
 
 export interface HardcodedStringsConfig {
     enabled: boolean;
-    ignoreStrings?: string[];
+    include?: string[];  // Files to scan for hardcoded strings (glob patterns or file paths). Defaults to main include if not specified.
+    ignoreFilePaths?: string[];   // Files to EXCLUDE from hardcoded string scanning (glob patterns or file paths like "src/demo.tsx")
+    ignoreStrings?: string[];  // Specific string content to ignore (e.g., ["test", "debug"])
     minLength?: number;
 }
 
@@ -35,7 +37,11 @@ export async function detectHardcodedStrings(
     const results = new Map<string, HardcodedString[]>();
 
     try {
-        const filesToScan = await getFilesToScan(workspaceRoot, config);
+        // Use hardcodedStrings.include if specified, otherwise fall back to main include
+        const includePatterns = hardcodedConfig.include || config.include;
+        const ignorePatterns = hardcodedConfig.ignoreFilePaths || [];
+
+        const filesToScan = await getFilesToScanForHardcodedStrings(workspaceRoot, includePatterns, ignorePatterns);
 
         for (const filePath of filesToScan) {
             const fileResults = await scanFileForStrings(filePath, minLength, ignoreStrings);
@@ -65,7 +71,7 @@ async function scanFileForStrings(
     try {
         const content = fs.readFileSync(filePath, 'utf-8');
         const lines = content.split('\n');
-        
+
         // Check if this is a JSX/TSX file
         const isJSXFile = /\.(jsx|tsx)$/i.test(filePath);
 
@@ -148,18 +154,38 @@ async function scanFileForStrings(
 function extractAllStrings(line: string, lineNumber: number, isJSXFile: boolean): Array<{ content: string; line: number; column: number; isJSXText: boolean }> {
     const strings: Array<{ content: string; line: number; column: number; isJSXText: boolean }> = [];
 
-    // Skip JSX text extraction on lines with TypeScript generic syntax
-    // These have <> brackets that look like JSX but aren't
-    const hasTypeScriptGenerics = /(?::\s*|=\s*|>\s*)[A-Z][a-zA-Z0-9]*<|<[A-Z][a-zA-Z0-9]*,|\):\s*[A-Z][a-zA-Z0-9]*</.test(line);
-    
-    // Pattern for JSX text content - HIGHEST PRIORITY (user-facing)
-    const jsxTextRegex = />([^<{]+)</g;
-    let match;
-    
-    // Only extract JSX text if line doesn't have TypeScript generic syntax
-    if (!hasTypeScriptGenerics) {
+    // For JSX/TSX files: STOP HERE - only return JSX text content
+    // Quoted strings in JSX files are almost always props/attributes (technical)
+    if (isJSXFile) {
+        // Skip lines with arrow functions - the => operator creates false >< pairs
+        if (line.includes('=>')) {
+            return strings;
+        }
+
+        // Skip lines with comparison operators - creates false >< pairs like (current < 3 ? current + 1 : current)
+        if (/[<>]=?\s*\d+/.test(line) || /\([^)]*<[^)]*\?/.test(line)) {
+            return strings;
+        }
+
+        // Skip lines with TypeScript generic syntax
+        // These have <> brackets that look like JSX but aren't
+        const hasTypeScriptGenerics = /(?::\s*|=\s*|>\s*)[A-Z][a-zA-Z0-9]*<|<[A-Z][a-zA-Z0-9]*,|\):\s*[A-Z][a-zA-Z0-9]*</.test(line);
+        if (hasTypeScriptGenerics) {
+            return strings;
+        }
+
+        // Pattern for JSX text content - HIGHEST PRIORITY (user-facing)
+        const jsxTextRegex = />([^<{]+)</g;
+        let match;
+
         while ((match = jsxTextRegex.exec(line)) !== null) {
             const content = match[1].trim();
+
+            // Skip if contains code markers (parentheses, equals, etc.)
+            if (content.includes('(') || content.includes(')') || content.includes('=') || content.includes('[') || content.includes(']')) {
+                continue;
+            }
+
             if (content.length > 0) {
                 strings.push({
                     content: content,
@@ -169,17 +195,14 @@ function extractAllStrings(line: string, lineNumber: number, isJSXFile: boolean)
                 });
             }
         }
-    }
 
-    // For JSX/TSX files: STOP HERE - only return JSX text content
-    // Quoted strings in JSX files are almost always props/attributes (technical)
-    if (isJSXFile) {
         return strings;
     }
 
     // For non-JSX files (JS, TS, etc.): Also extract quoted strings
     // Pattern for double-quoted strings (lower priority, usually technical)
     const doubleQuoteRegex = /"([^"\\]*(\\.[^"\\]*)*)"/g;
+    let match;
     while ((match = doubleQuoteRegex.exec(line)) !== null) {
         strings.push({
             content: match[1],
@@ -231,9 +254,12 @@ function isCommentLine(line: string): boolean {
  */
 function isImportOrRequireLine(line: string): boolean {
     const trimmed = line.trim();
+    // Match import statements, require calls, and export...from statements
     return trimmed.startsWith('import ') ||
+        /^import\s*{/.test(trimmed) ||  // import { ... }
+        /^import\s+type\s*{/.test(trimmed) ||  // import type { ... }
         trimmed.includes('require(') ||
-        trimmed.startsWith('export ') && trimmed.includes('from ');
+        (trimmed.startsWith('export ') && trimmed.includes('from '));
 }
 
 /**
@@ -394,9 +420,14 @@ function isMethodArgument(line: string, content: string): boolean {
 }
 
 /**
- * Get files to scan based on configuration
+ * Get files to scan for hardcoded strings based on configuration
+ * Supports both glob patterns (e.g., "**​/*.test.tsx") and direct file paths (e.g., "src/locales/en-NZ.json")
  */
-async function getFilesToScan(workspaceRoot: string, config: ScanConfig): Promise<string[]> {
+async function getFilesToScanForHardcodedStrings(
+    workspaceRoot: string,
+    includePatterns: string[],
+    ignorePatterns: string[]
+): Promise<string[]> {
     const fg = require('fast-glob');
     const defaultIgnore = [
         '**/node_modules/**',
@@ -408,14 +439,46 @@ async function getFilesToScan(workspaceRoot: string, config: ScanConfig): Promis
         '**/env',
         '**/*.env'
     ];
-    const allIgnorePatterns = config.ignore ? [...defaultIgnore, ...config.ignore] : defaultIgnore;
 
-    const files = await fg(config.include, {
+    // Separate glob patterns from direct file paths
+    const globPatterns: string[] = [];
+    const directPaths: string[] = [];
+
+    for (const pattern of ignorePatterns) {
+        if (pattern.includes('*') || pattern.includes('?') || pattern.includes('[')) {
+            // It's a glob pattern
+            globPatterns.push(pattern);
+        } else {
+            // It's a direct file path
+            directPaths.push(pattern);
+        }
+    }
+
+    const allIgnorePatterns = [...defaultIgnore, ...globPatterns];
+
+    let files = await fg(includePatterns, {
         cwd: workspaceRoot,
         absolute: true,
         ignore: allIgnorePatterns,
         onlyFiles: true
     });
+
+    // Filter out direct file paths (normalize paths for comparison)
+    if (directPaths.length > 0) {
+        const normalizedIgnorePaths = directPaths.map(p => {
+            // Normalize to use forward slashes and remove leading ./
+            const normalized = path.normalize(path.join(workspaceRoot, p)).replace(/\\/g, '/');
+            return normalized;
+        });
+
+        files = files.filter((file: string) => {
+            const normalizedFile = file.replace(/\\/g, '/');
+            return !normalizedIgnorePaths.some((ignorePath: string) =>
+                normalizedFile === ignorePath || normalizedFile.endsWith('/' + ignorePath)
+            );
+        });
+    }
+
     return files;
 }
 
@@ -761,6 +824,20 @@ function isFontFamily(content: string): boolean {
  * Check if string is a CSS property value based on context
  */
 function isCSSPropertyValue(line: string, content: string): boolean {
+    // Check for styled-components syntax (backticks, CSS-like syntax)
+    if (line.includes('styled.') || line.includes('styled(') || /`[^`]*$/.test(line.substring(0, 50))) {
+        // If content looks like CSS value (contains px, %, em, rem, var(), colors, etc.)
+        if (/\d+(px|em|rem|%|vh|vw)/.test(content) ||
+            content.includes('var(') ||
+            content.includes('solid') ||
+            content.includes('dashed') ||
+            content.includes('dotted') ||
+            /^#[0-9A-Fa-f]{3,8}$/.test(content) ||  // hex colors
+            /^rgba?\(/.test(content)) {  // rgb/rgba colors
+            return true;
+        }
+    }
+
     // Check if the line looks like a CSS property assignment
     const cssPropertyPattern = /\w+:\s*["']?[^"']+["']?\s*[,;]/;
     if (cssPropertyPattern.test(line)) {

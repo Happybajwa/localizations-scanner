@@ -4,109 +4,183 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/Happybajwa/localizations-scanner)
 
-A lightweight, high-performance Visual Studio Code extension that scans your codebase to detect localization keys used in source files but missing from your main localization file.
-
-> **Note**: This extension includes optional hardcoded string detection to help identify strings that should be localized. While highly accurate (~95-98%), automated detection is not perfect and should be used as a guide. Always review results manually before making changes. [Learn more about accuracy](#hardcoded-strings-detection)
+Scan your codebase to detect missing localization keys and hardcoded strings that should be localized. Zero performance impact with on-demand scanning.
 
 ## Features
 
-- **Detect Missing Keys**: Automatically finds localization keys used in your code that are missing from your localization file
-- **Detect Hardcoded Strings**: Identifies hardcoded user-facing strings in your codebase that should be localized (configurable)
-- **Zero Performance Impact**: Scans only on-demand when you click refresh - no background watchers or file system monitoring
-- **Sidebar View**: Displays missing keys and hardcoded strings in a dedicated sidebar with an intuitive tree structure
-- **Quick Navigation**: Click on any missing key or hardcoded string to jump directly to its location in your code
-- **Highly Configurable**: Customize file patterns, key patterns, and localization file location via `scan.json`
-- **Smart Filtering**: Exclude test files, mocks, and other unwanted directories from scanning
-- **Intelligent Detection**: Advanced filtering to minimize false positives for hardcoded strings (technical identifiers, CSS values, etc.)
-- **Deep Nesting Support**: Handles localization files with complex nested structures (up to 8 levels deep)
+✅ **Missing Localization Keys** - Find keys used in code but missing from localization files  
+✅ **Hardcoded Strings Detection** - Identify user-facing strings that should be localized  
+✅ **Sidebar Integration** - Dedicated view with click-to-navigate  
+✅ **On-Demand Scanning** - Zero performance impact, scans only when you click refresh  
+✅ **Fully Configurable** - Customize patterns, file paths, and exclusions  
+✅ **Smart Filtering** - Excludes test files, CSS classes, technical identifiers
 
 ## Installation
 
-### From VS Code Marketplace
+1. Open VS Code Extensions (`Ctrl+Shift+X` / `Cmd+Shift+X`)
+2. Search for **"Localization Scanner"**
+3. Click **Install**
 
-1. Open VS Code
-2. Press `Ctrl+Shift+X` (Windows/Linux) or `Cmd+Shift+X` (macOS) to open Extensions
-3. Search for "Localization Scanner"
-4. Click **Install**
-
-### From Command Line
+Or via command line:
 
 ```bash
 code --install-extension devharry.localizations-scanner
 ```
 
-### Marketplace
+## Quick Start
 
-[📦 View on Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=devharry.localizations-scanner)
-
-## Performance
-
-This extension is designed with performance in mind:
-
-- ✅ **On-Demand Scanning**: Only scans when you explicitly click the refresh button - no automatic background operations
-- ✅ **Efficient File Processing**: Uses fast-glob for optimized file system operations with ignore patterns
-- ✅ **Async Operations**: All file operations are asynchronous to prevent blocking VS Code
-- ✅ **Smart Error Handling**: Gracefully skips unreadable files without impacting the scan
-- ✅ **Minimal Memory Footprint**: Processes files incrementally without loading entire codebase into memory
-- ✅ **No File Watchers**: Does not monitor file system changes, keeping resource usage minimal
-
-**Result**: This extension has zero impact on VS Code startup time, editor responsiveness, or ongoing development workflow.
-
-## Getting Started
-
-### 1. Create Configuration File
-
-Create a `scan.json` file in your workspace root:
+### 1. Create `scan.json` in your workspace root
 
 ```json
 {
-  "localizationFile": "src/locales/en-NZ.json",
+  "localizationFile": "src/locales/en.json",
   "include": ["src/**/*.{ts,tsx,js,jsx}"],
   "keyPattern": "\\bt\\(['\"]([a-zA-Z0-9_.]+)['\"]\\)",
-  "ignore": ["**/*.test.{ts,tsx,js,jsx}", "**/*.spec.{ts,tsx,js,jsx}"],
+  "ignoreFilePaths": ["**/*.test.{ts,tsx,js,jsx}", "**/*.spec.{ts,tsx,js,jsx}"],
   "hardcodedStrings": {
     "enabled": true,
+    "include": ["src/**/*.{ts,tsx}"],
+    "ignoreFilePaths": ["**/*.test.{ts,tsx}", "src/constants.ts"],
     "minLength": 3,
-    "ignoreStrings": ["test", "debug", "error", "warning", "info"]
+    "ignoreStrings": ["test", "debug", "error"]
   }
 }
 ```
 
-> **Note**: The pattern above matches single and double quotes. To also match template literals (backticks), use: `['"`]`
+### 2. Open Sidebar & Scan
 
-Or use the "Create scan.json" button in the sidebar to generate a template.
+- Click the globe icon (🌐) in the activity bar
+- Click the refresh button (🔄) to scan
 
-### 2. Configure Settings
+## Configuration
 
-**Required Settings:**
-- **localizationFile**: Path to your main localization JSON file (relative to workspace root)
-- **include**: Array of glob patterns to match files you want to scan
-- **keyPattern**: Regular expression with a capture group to extract keys from code
-- **ignore** (optional): Array of glob patterns to exclude from scanning (e.g., test files, mocks)
+### Required Fields
 
-**Hardcoded Strings Detection (Optional):**
-- **hardcodedStrings.enabled**: Set to `true` to enable hardcoded string detection
-- **hardcodedStrings.minLength**: Minimum string length to detect (default: 3)
-- **hardcodedStrings.ignoreStrings**: Array of specific strings to ignore
+| Field              | Description                              | Example                                  |
+| ------------------ | ---------------------------------------- | ---------------------------------------- |
+| `localizationFile` | Path to your localization JSON file      | `"src/locales/en.json"`                  |
+| `include`          | Glob patterns for files to scan          | `["src/**/*.{ts,tsx}"]`                  |
+| `keyPattern`       | Regex with capture group to extract keys | `"\\bt\\(['\"]([a-zA-Z0-9_.]+)['\"]\\)"` |
 
-### 3. Open the Sidebar
+### Optional Fields
 
-Click the globe icon (🌐) in the VS Code activity bar to open the Localization Scanner sidebar.
+| Field                              | Description                                     | Example                            |
+| ---------------------------------- | ----------------------------------------------- | ---------------------------------- |
+| `ignoreFilePaths`                  | Files to exclude from localization scanning     | `["**/*.test.ts", "src/demo.tsx"]` |
+| `hardcodedStrings.enabled`         | Enable hardcoded string detection               | `true`                             |
+| `hardcodedStrings.include`         | Files to scan for hardcoded strings             | `["src/**/*.tsx"]`                 |
+| `hardcodedStrings.ignoreFilePaths` | Files to exclude from hardcoded string scanning | `["src/constants.ts"]`             |
+| `hardcodedStrings.minLength`       | Minimum string length to detect                 | `3`                                |
+| `hardcodedStrings.ignoreStrings`   | Specific strings to ignore                      | `["test", "debug"]`                |
 
-### 4. Scan for Missing Keys
+> **Note**: Both `ignoreFilePaths` arrays support glob patterns (`**/*.test.ts`) and direct file paths (`src/demo.tsx`)
 
-Click the refresh button (🔄) in the sidebar to scan your codebase.
+### Framework Examples
 
-## Example Usage
+<details>
+<summary><b>React with i18next</b></summary>
 
-If your code uses localization like this:
+```json
+{
+  "localizationFile": "src/i18n/en.json",
+  "include": ["src/**/*.{js,jsx,ts,tsx}"],
+  "keyPattern": "\\bt\\(['\"]([a-zA-Z0-9_.]+)['\"]\\)",
+  "ignoreFilePaths": ["**/*.test.{js,jsx,ts,tsx}", "**/mocks/**"],
+  "hardcodedStrings": {
+    "enabled": true,
+    "include": ["src/**/*.{tsx,jsx}"],
+    "ignoreFilePaths": ["**/*.test.{tsx,jsx}", "src/constants/errorCodes.ts"],
+    "minLength": 3
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Vue i18n</b></summary>
+
+```json
+{
+  "localizationFile": "src/locales/en.json",
+  "include": ["src/**/*.vue"],
+  "keyPattern": "\\$t\\(['\"]([a-zA-Z0-9_.]+)['\"]\\)",
+  "ignoreFilePaths": ["**/__tests__/**"],
+  "hardcodedStrings": {
+    "enabled": true,
+    "include": ["src/**/*.vue"],
+    "minLength": 4
+  }
+}
+```
+
+</details>
+
+<details>
+<summary><b>Next.js with next-i18next</b></summary>
+
+```json
+{
+  "localizationFile": "public/locales/en/common.json",
+  "include": ["components/**/*.{js,jsx,ts,tsx}", "pages/**/*.{js,jsx,ts,tsx}"],
+  "keyPattern": "\\bt\\(['\"]([a-zA-Z0-9_.]+)['\"]\\)",
+  "ignoreFilePaths": ["**/*.test.*", "**/*.spec.*"],
+  "hardcodedStrings": {
+    "enabled": true,
+    "include": ["components/**/*.tsx", "pages/**/*.tsx"],
+    "ignoreFilePaths": ["pages/api/**"],
+    "ignoreStrings": ["SEO", "API", "URL"]
+  }
+}
+```
+
+</details>
+
+## Hardcoded Strings Detection
+
+Detects user-facing strings that should be localized with **85-90% accuracy**. Advanced filtering system minimizes false positives while catching genuine hardcoded text.
+
+**✅ Detected:**
+
+- Error messages, button labels, tooltips
+- Form labels, placeholders, validation messages
+- Page titles, headings, notifications
+- JSX text content: `<button>Click Me</button>`
+
+**❌ Filtered Out:**
+
+- CSS classes (`btn-primary`, `bg-blue-500`)
+- Technical identifiers (`userId`, `API_URL`)
+- Import paths (`"../Types"`, `"./constants"`)
+- Styled-components CSS values (`"1px solid var(--color-grey30)"`)
+- TypeScript syntax (`Promise<void>`, `FC<Props>`)
+
+**Tips:**
+
+- Always review results before making changes
+- Add domain-specific terms to `ignoreStrings`
+- Use `ignoreFilePaths` to exclude constant files
+- [Report false positives](https://github.com/Happybajwa/localizations-scanner/issues) to help improve accuracy
+
+## Commands
+
+| Command                | Description                                            |
+| ---------------------- | ------------------------------------------------------ |
+| **Refresh**            | Rescan codebase for missing keys and hardcoded strings |
+| **Create scan.json**   | Generate configuration template                        |
+| **Export Diagnostics** | Export detection results to JSON                       |
+
+## Example Output
+
+**Code:**
 
 ```typescript
 const message = t('welcome.message');
 const title = t('home.title');
+const button = <button>Click Me</button>;
 ```
 
-And your `en-NZ.json` only contains:
+**en.json:**
 
 ```json
 {
@@ -116,228 +190,41 @@ And your `en-NZ.json` only contains:
 }
 ```
 
-The extension will identify `home.title` as a missing key and display it in the sidebar.
+**Results:**
 
-## Hardcoded Strings Detection
-
-The extension can detect hardcoded strings in your code that should potentially be localized. This feature uses advanced pattern matching and intelligent filtering to identify user-facing strings.
-
-### How It Works
-
-The detector scans string literals in your code and applies over 20 different filters to distinguish between:
-- **User-facing content** (e.g., error messages, button labels, page titles) ✅ Detected
-- **Technical identifiers** (e.g., CSS classes, variable names, API endpoints) ❌ Filtered out
-
-### Accuracy Notice
-
-**Important**: While the hardcoded strings detector achieves approximately 95-98% accuracy in distinguishing user-facing strings from technical content, it is not perfect. 
-
-**Why detection may not be 100% accurate:**
-
-1. **Context Limitations**: Static analysis cannot always determine the intent or usage context of a string
-2. **Domain-Specific Terms**: Technical terms in your domain might be detected as user-facing content
-3. **Edge Cases**: Unusual coding patterns or mixed contexts may produce false positives or negatives
-4. **Language Ambiguity**: Strings that serve dual purposes (technical and user-facing) require human judgment
-
-**What gets filtered out (not detected):**
-- CSS class names, IDs, and data attributes (`main-content`, `btn-primary`)
-- Environment variables and constants (`REACT_APP_API_URL`, `NODE_ENV`)
-- Technical identifiers (camelCase, snake_case, kebab-case)
-- API endpoints, URLs, and file paths (`/api/users`, `https://example.com`)
-- CSS values and properties (`16px`, `flex`, `rgba(0,0,0,0.5)`)
-- Localization keys already in use (`user.profile.name`)
-- DOM API calls (`createElement("div")`)
-- Storage keys, query parameters
-- Date/time formats (`MM/DD/YYYY`, `HH:mm:ss`)
-- Email addresses, currency codes, version numbers
-- Font families, regex patterns
-- Single-word technical terms
-
-**What gets detected:**
-- Error and success messages
-- Button labels and tooltips
-- Form field labels and placeholders
-- Page titles and headings
-- Empty state messages
-- Validation messages
-- User notifications
-- Aria-labels and accessibility text
-- JSX text content
-
-### Recommendations
-
-1. **Review Results**: Always manually review detected strings before localizing
-2. **Configure Ignore List**: Add domain-specific terms to `hardcodedStrings.ignoreStrings` in your `scan.json`
-3. **Report Issues**: If you find patterns that should be filtered or detected differently, please [open an issue](https://github.com/Happybajwa/localizations-scanner/issues)
-4. **Use as a Guide**: Treat detection results as suggestions rather than absolute requirements
-
-## Configuration Examples
-
-### React i18next
-
-```json
-{
-  "localizationFile": "src/i18n/en.json",
-  "include": ["src/**/*.{js,jsx,ts,tsx}"],
-  "keyPattern": "\\bt\\(['\"]([a-zA-Z0-9_.]+)['\"]\\)",
-  "ignore": ["**/*.test.{js,jsx,ts,tsx}", "**/mocks/**"],
-  "hardcodedStrings": {
-    "enabled": true,
-    "minLength": 3,
-    "ignoreStrings": ["test", "mock", "debug"]
-  }
-}
-```
-
-### Vue i18n
-
-```json
-{
-  "localizationFile": "src/locales/en.json",
-  "include": ["src/**/*.vue"],
-  "keyPattern": "\\$t\\(['\"]([a-zA-Z0-9_.]+)['\"]\\)",
-  "ignore": ["**/__tests__/**"],
-  "hardcodedStrings": {
-    "enabled": true,
-    "minLength": 4
-  }
-}
-```
-
-### Next.js with next-i18next
-
-```json
-{
-  "localizationFile": "public/locales/en/common.json",
-  "include": ["components/**/*.{js,jsx,ts,tsx}", "pages/**/*.{js,jsx,ts,tsx}"],
-  "keyPattern": "\\bt\\(['\"]([a-zA-Z0-9_.]+)['\"]\\)",
-  "ignore": ["**/*.test.*", "**/*.spec.*"],
-  "hardcodedStrings": {
-    "enabled": true,
-    "minLength": 3,
-    "ignoreStrings": ["SEO", "API", "URL"]
-  }
-}
-```
-
-## Commands
-
-- **Refresh**: Rescans the codebase for missing keys and hardcoded strings
-- **Create scan.json**: Creates a template configuration file
-- **Export Diagnostics**: Exports detailed detection results to JSON files for analysis (when hardcoded strings are detected)
-
-## Requirements
-
-- VS Code 1.109.0 or higher
-- A workspace with source files and a localization JSON file
-
-## Known Limitations
-
-### Missing Keys Detection
-- Only supports a single base localization file
-- Does not automatically insert missing keys (intentional design choice)
-- Keys must follow the pattern defined in `keyPattern`
-
-### Hardcoded Strings Detection
-- **Not 100% accurate**: Achieves ~95-98% accuracy in distinguishing user-facing strings from technical identifiers
-- **Context-dependent**: Cannot determine semantic meaning or usage context with complete certainty
-- **May produce false positives**: Some technical strings with natural language appearance may be flagged
-- **May miss some strings**: Dynamically constructed strings or unusual patterns may not be detected
-- **Language-specific**: Optimized for English; other languages may have different patterns
-- **Requires review**: Always manually review detected strings before taking action
-
-**We continuously improve detection accuracy. If you encounter patterns that should be handled differently, please [report them](https://github.com/Happybajwa/localizations-scanner/issues) so we can enhance the filters.**
+- ❌ Missing Key: `home.title` (used in App.tsx:5)
+- ⚠️ Hardcoded String: `"Click Me"` (found in Button.tsx:12)
 
 ## Contributing
 
-This is an open-source project! Contributions are welcome.
+Contributions welcome!
 
-### Repository
-- GitHub: [https://github.com/Happybajwa/localizations-scanner](https://github.com/Happybajwa/localizations-scanner)
-
-### How to Contribute
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+**Repository:** [github.com/Happybajwa/localizations-scanner](https://github.com/Happybajwa/localizations-scanner)
 
 ### Development Setup
+
 ```bash
 git clone https://github.com/Happybajwa/localizations-scanner.git
 cd localizations-scanner
 npm install
 npm run compile
+# Press F5 in VS Code to launch extension
 ```
-
-Press F5 in VS Code to launch the extension in development mode.
 
 ### Test Workspace
 
-A comprehensive test workspace is included in the `examples/` directory:
-- Extract `examples/test-workspace.zip` 
-- Open the extracted folder in VS Code
-- Test the extension with 70+ edge cases and patterns
-- Use it to verify your changes and new filter patterns
+Extract `examples/test-workspace.zip` to test with 70+ edge cases and patterns.
 
-See [examples/README.md](examples/README.md) for details.
+## Support
+
+- 🐛 [Report Issues](https://github.com/Happybajwa/localizations-scanner/issues)
+- 💡 [Feature Requests](https://github.com/Happybajwa/localizations-scanner/issues)
+- 📧 Email: devharry2024@gmail.com
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Support & Feedback
-
-We value your feedback and contributions to making this extension better!
-
-### Report Issues
-
-Found a bug or false positive in hardcoded string detection? Please help us improve:
-
-- 🐛 **[Report a Bug](https://github.com/Happybajwa/localizations-scanner/issues)** - Include code examples when reporting detection issues
-- 💡 **[Request a Feature](https://github.com/Happybajwa/localizations-scanner/issues)** - Suggest improvements or new capabilities
-- 📝 **[Improve Detection](https://github.com/Happybajwa/localizations-scanner/issues)** - Share patterns that should be filtered or detected
-
-### When Reporting Detection Issues
-
-To help us improve accuracy, please include:
-1. The string that was incorrectly detected or missed
-2. The surrounding code context (a few lines before and after)
-3. Why it should or shouldn't be detected (e.g., "This is a CSS class" or "This is user-facing text")
-4. Your `scan.json` configuration (if relevant)
-
-### Contact
-
-- 📧 Email: devharry2024@gmail.com
-- 💬 GitHub Discussions: [Start a conversation](https://github.com/Happybajwa/localizations-scanner/discussions)
-
-Your feedback helps make this tool more accurate and useful for the entire community!
-
-## Release Notes
-
-### 1.1.0 (Coming Soon)
-
-New features:
-- **Hardcoded Strings Detection**: Automatically detect hardcoded user-facing strings that should be localized
-- **Advanced Filtering**: 20+ intelligent filters to minimize false positives (~95-98% accuracy)
-- **Export Diagnostics**: Export detailed detection results to JSON for analysis
-- **Enhanced Sidebar**: Dual view showing both missing keys and hardcoded strings
-- **Configurable Detection**: Enable/disable, set minimum length, add ignore patterns
-- Comprehensive documentation with accuracy guidelines
-
-### 1.0.0
-
-Initial release:
-- Scan codebase for missing localization keys
-- Display results in sidebar tree view with counts
-- Navigate to key usage locations with single click
-- Configurable via scan.json with include/ignore patterns
-- Support for deeply nested localization structures
-- Zero performance impact with on-demand scanning
-- Professional error handling and user feedback
+MIT License - see [LICENSE](LICENSE) file
 
 ---
 
-**Made with ❤️ by dev_harry**
-
-**Enjoy!**
+**Made with ❤️ by dev_harry** | [Marketplace](https://marketplace.visualstudio.com/items?itemName=devharry.localizations-scanner) | [GitHub](https://github.com/Happybajwa/localizations-scanner)
