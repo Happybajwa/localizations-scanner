@@ -2,11 +2,18 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
+export interface HardcodedStringsConfig {
+    enabled: boolean;
+    ignoreStrings?: string[];
+    minLength?: number;
+}
+
 export interface ScanConfig {
     localizationFile: string;
     include: string[];
     keyPattern: string;
     ignore?: string[];
+    hardcodedStrings?: HardcodedStringsConfig;
 }
 
 /**
@@ -94,7 +101,12 @@ export async function promptCreateConfig(): Promise<void> {
             localizationFile: 'src/locales/en-NZ.json',
             include: ['src/**/*.{ts,tsx,js,jsx}'],
             keyPattern: '\\bt\\([\'"`]([a-zA-Z0-9_.]+)[\'"`]\\)',
-            ignore: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}']
+            ignore: ['**/*.test.{ts,tsx,js,jsx}', '**/*.spec.{ts,tsx,js,jsx}'],
+            hardcodedStrings: {
+                enabled: false,
+                minLength: 3,
+                ignoreStrings: ['test', 'debug', 'error', 'warning', 'info']
+            }
         };
 
         fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2), 'utf-8');

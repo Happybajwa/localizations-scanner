@@ -35,7 +35,7 @@ async function main() {
 		sourcesContent: false,
 		platform: 'node',
 		outfile: 'dist/extension.js',
-		external: ['vscode'],
+		external: ['vscode', 'eslint', '@typescript-eslint/parser', '@typescript-eslint/eslint-plugin'],
 		logLevel: 'silent',
 		plugins: [
 			/* add to the end of plugins array */

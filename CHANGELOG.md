@@ -5,6 +5,71 @@ All notable changes to the Localization Scanner extension will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-03-05
+
+### Added
+- **Hardcoded Strings Detection** (Major Feature)
+  - Automatically detect user-facing hardcoded strings in your codebase
+  - Intelligent filtering system with 20+ filter types to reduce false positives
+  - Achieves ~95-98% accuracy through context-aware detection
+  - Configurable via `hardcodedStrings` section in `scan.json`
+  - Opt-in feature (disabled by default)
+
+- **Advanced Filtering System**
+  - Localization key detection (dot notation: `user.profile.name`)
+  - Already localized strings (inside `t()`, `i18n.t()`, `translate()` calls)
+  - CSS identifiers (kebab-case, grid templates, functions, shorthands)
+  - Technical identifiers (camelCase, snake_case, ALL_CAPS, single words)
+  - DOM API calls (15 APIs, 40 HTML elements, 20 event names)
+  - Method arguments (searchParams, localStorage, sessionStorage, Object methods)
+  - Date/time formats (MM/DD/YYYY, HH:mm:ss, etc.)
+  - Email addresses, currency codes, font families
+  - Version numbers (semver), regex patterns
+  - Import/export statements, proper names, technical keywords
+
+- **Enhanced Tree View**
+  - Dual-section sidebar: "Missing Keys" and "Hardcoded Strings"
+  - Group hardcoded strings by content with occurrence count badges
+  - Expand to see all file locations with line numbers
+  - Click to navigate to exact location (file, line, column)
+  - Empty state indicators when no issues found
+
+- **Export Diagnostics Command**
+  - Export detailed JSON reports for hardcoded strings
+  - Includes diagnostics file with all detections and locations
+  - Includes summary file with statistics and breakdown
+  - Useful for code reviews and team reporting
+
+- **Environment File Protection**
+  - Automatically excludes `.env`, `.env.*`, `env`, and `*.env` files from scanning
+  - Prevents accidental scanning of sensitive environment variables
+  - Applied to both missing keys and hardcoded strings detection
+
+- **Comprehensive Documentation**
+  - New "Hardcoded Strings Detection" section in README
+  - Transparent accuracy notice (~95-98%) with explanations
+  - Detailed "What Gets Filtered Out" guide with 20+ categories
+  - Enhanced "Support & Feedback" section with bug reporting guidelines
+  - Test workspace packaged for contributors (`examples/test-workspace.zip`)
+  - Professional funding configuration (GitHub Sponsors + Buy Me a Coffee)
+
+### Changed
+- Removed all console logging statements for cleaner production code
+- Updated configuration examples across all framework documentation
+- Enhanced default `scan.json` template with hardcoded strings configuration
+
+### Technical Improvements
+- Built with TypeScript following SOLID principles
+- Regex-based detection with 4 pattern types (double quotes, single quotes, template literals, JSX text)
+- Pure functions for filtering logic
+- Modular architecture with separated detection, filtering, and UI layers
+- Comprehensive test workspace with 11 files and 70+ edge cases
+
+### Performance
+- Efficient scanning using fast-glob with intelligent exclusions
+- Minimal false positives through context-aware filtering
+- Non-blocking UI with progress reporting
+
 ## [1.0.4] - 2026-03-04
 
 ### Fixed

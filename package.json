@@ -1,8 +1,8 @@
 {
   "name": "localizations-scanner",
   "displayName": "Localization Scanner",
-  "description": "Scan your codebase to detect localization keys used in code but missing from your localization files",
-  "version": "1.0.4",
+  "description": "Scan your codebase to detect missing localization keys and hardcoded strings. Find untranslated text and maintain consistent i18n across your project.",
+  "version": "2.0.0",
   "publisher": "devharry",
   "author": {
     "name": "dev_harry",
@@ -23,7 +23,11 @@
     "internationalization",
     "translation",
     "missing keys",
+    "hardcoded strings",
+    "string detection",
     "scanner",
+    "linter",
+    "code quality",
     "react",
     "vue",
     "typescript",
@@ -67,6 +71,11 @@
         "command": "localizationsScanner.createConfig",
         "title": "Create scan.json",
         "icon": "$(new-file)"
+      },
+      {
+        "command": "localizationsScanner.exportDiagnostics",
+        "title": "Localization Scanner: Export Diagnostics",
+        "icon": "$(export)"
       }
     ],
     "menus": {
@@ -111,6 +120,8 @@
     "typescript-eslint": "^8.56.1"
   },
   "dependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.56.1",
+    "@typescript-eslint/parser": "^8.56.1",
     "fast-glob": "^3.3.3"
   }
 }
