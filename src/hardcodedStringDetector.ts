@@ -65,6 +65,9 @@ async function scanFileForStrings(
     try {
         const content = fs.readFileSync(filePath, 'utf-8');
         const lines = content.split('\n');
+        
+        // Check if this is a JSX/TSX file
+        const isJSXFile = /\.(jsx|tsx)$/i.test(filePath);
 
         for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
             const line = lines[lineIndex];
@@ -80,8 +83,9 @@ async function scanFileForStrings(
                 continue;
             }
 
-            // Extract all string literals from the line
-            const strings = extractAllStrings(line, lineNumber);
+            // For JSX/TSX files: ONLY extract JSX text content, ignore all quoted strings
+            // For other files: Extract all strings
+            const strings = extractAllStrings(line, lineNumber, isJSXFile);
 
             for (const str of strings) {
                 // Skip className values entirely (most common false positive)
@@ -138,25 +142,42 @@ async function scanFileForStrings(
 
 /**
  * Extract all string literals from a line
+ * For JSX/TSX files: ONLY extract JSX text content between tags
+ * For other files: Extract all quoted strings
  */
-function extractAllStrings(line: string, lineNumber: number): Array<{ content: string; line: number; column: number; isJSXText: boolean }> {
+function extractAllStrings(line: string, lineNumber: number, isJSXFile: boolean): Array<{ content: string; line: number; column: number; isJSXText: boolean }> {
     const strings: Array<{ content: string; line: number; column: number; isJSXText: boolean }> = [];
 
+    // Skip JSX text extraction on lines with TypeScript generic syntax
+    // These have <> brackets that look like JSX but aren't
+    const hasTypeScriptGenerics = /(?::\s*|=\s*|>\s*)[A-Z][a-zA-Z0-9]*<|<[A-Z][a-zA-Z0-9]*,|\):\s*[A-Z][a-zA-Z0-9]*</.test(line);
+    
     // Pattern for JSX text content - HIGHEST PRIORITY (user-facing)
     const jsxTextRegex = />([^<{]+)</g;
     let match;
-    while ((match = jsxTextRegex.exec(line)) !== null) {
-        const content = match[1].trim();
-        if (content.length > 0) {
-            strings.push({
-                content: content,
-                line: lineNumber,
-                column: match.index + 1,
-                isJSXText: true  // This is user-facing JSX text
-            });
+    
+    // Only extract JSX text if line doesn't have TypeScript generic syntax
+    if (!hasTypeScriptGenerics) {
+        while ((match = jsxTextRegex.exec(line)) !== null) {
+            const content = match[1].trim();
+            if (content.length > 0) {
+                strings.push({
+                    content: content,
+                    line: lineNumber,
+                    column: match.index + 1,
+                    isJSXText: true  // This is user-facing JSX text
+                });
+            }
         }
     }
 
+    // For JSX/TSX files: STOP HERE - only return JSX text content
+    // Quoted strings in JSX files are almost always props/attributes (technical)
+    if (isJSXFile) {
+        return strings;
+    }
+
+    // For non-JSX files (JS, TS, etc.): Also extract quoted strings
     // Pattern for double-quoted strings (lower priority, usually technical)
     const doubleQuoteRegex = /"([^"\\]*(\\.[^"\\]*)*)"/g;
     while ((match = doubleQuoteRegex.exec(line)) !== null) {
