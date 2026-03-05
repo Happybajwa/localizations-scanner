@@ -1,12 +1,10 @@
-# GitHub Sponsors Configuration
-# This file defines the funding options for the Localization Scanner project
-# When users visit the repository, they'll see a "Sponsor" button with these options
+# Support the author by using the funding links below
+# Developed and maintained by dev_harry
+#Github sponsors: https://github.com/sponsors/Happybajwa
+# Buy Me a Coffee https://www.buymeacoffee.com/KmeqZ6xKg3
 
-# GitHub Sponsors (preferred for recurring support)
 github: happybajwa
-
-# Buy Me a Coffee (one-time contributions)
-custom: ['https://www.buymeacoffee.com/KmeqZ6xKg3']
+buy_me_a_coffee: KmeqZ6xKg3
 
 # Support this project
 # Your contributions help maintain and improve this free, open-source tool
