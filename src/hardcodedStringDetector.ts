@@ -8,6 +8,7 @@ export interface HardcodedString {
     line: number;
     column: number;
     context: string;
+    isJSXText?: boolean;  // Track if this is JSX text content (most reliable)
 }
 
 export interface HardcodedStringsConfig {
@@ -83,23 +84,48 @@ async function scanFileForStrings(
             const strings = extractAllStrings(line, lineNumber);
 
             for (const str of strings) {
-                // Apply filters
-                if (
-                    str.content.length >= minLength &&
-                    !shouldIgnoreString(str.content, ignorePatterns, line) &&
-                    !isLocalizationKey(str.content) &&
-                    !isInsideLocalizationCall(line, str.content) &&
-                    !isAttributeName(line, str.column) &&
-                    !isDOMAPICall(line, str.content) &&
-                    !isMethodArgument(line, str.content)
-                ) {
-                    results.push({
-                        content: str.content,
-                        file: filePath,
-                        line: str.line,
-                        column: str.column,
-                        context: determineContext(line, str.content)
-                    });
+                // Skip className values entirely (most common false positive)
+                if (isClassNameValue(line, str.column, str.content)) {
+                    continue;
+                }
+
+                // JSX text content is almost always user-facing - apply lighter filtering
+                if (str.isJSXText) {
+                    // For JSX text, only check basic filters
+                    if (
+                        str.content.length >= minLength &&
+                        !isLocalizationKey(str.content) &&
+                        !isInsideLocalizationCall(line, str.content)
+                    ) {
+                        results.push({
+                            content: str.content,
+                            file: filePath,
+                            line: str.line,
+                            column: str.column,
+                            context: 'jsx-text',
+                            isJSXText: true
+                        });
+                    }
+                } else {
+                    // For quoted strings, apply all filters (usually technical)
+                    if (
+                        str.content.length >= minLength &&
+                        !shouldIgnoreString(str.content, ignorePatterns, line) &&
+                        !isLocalizationKey(str.content) &&
+                        !isInsideLocalizationCall(line, str.content) &&
+                        !isAttributeName(line, str.column) &&
+                        !isDOMAPICall(line, str.content) &&
+                        !isMethodArgument(line, str.content)
+                    ) {
+                        results.push({
+                            content: str.content,
+                            file: filePath,
+                            line: str.line,
+                            column: str.column,
+                            context: determineContext(line, str.content),
+                            isJSXText: false
+                        });
+                    }
                 }
             }
         }
@@ -113,32 +139,47 @@ async function scanFileForStrings(
 /**
  * Extract all string literals from a line
  */
-function extractAllStrings(line: string, lineNumber: number): Array<{ content: string; line: number; column: number }> {
-    const strings: Array<{ content: string; line: number; column: number }> = [];
+function extractAllStrings(line: string, lineNumber: number): Array<{ content: string; line: number; column: number; isJSXText: boolean }> {
+    const strings: Array<{ content: string; line: number; column: number; isJSXText: boolean }> = [];
 
-    // Pattern for double-quoted strings
-    const doubleQuoteRegex = /"([^"\\]*(\\.[^"\\]*)*)"/g;
+    // Pattern for JSX text content - HIGHEST PRIORITY (user-facing)
+    const jsxTextRegex = />([^<{]+)</g;
     let match;
+    while ((match = jsxTextRegex.exec(line)) !== null) {
+        const content = match[1].trim();
+        if (content.length > 0) {
+            strings.push({
+                content: content,
+                line: lineNumber,
+                column: match.index + 1,
+                isJSXText: true  // This is user-facing JSX text
+            });
+        }
+    }
 
+    // Pattern for double-quoted strings (lower priority, usually technical)
+    const doubleQuoteRegex = /"([^"\\]*(\\.[^"\\]*)*)"/g;
     while ((match = doubleQuoteRegex.exec(line)) !== null) {
         strings.push({
             content: match[1],
             line: lineNumber,
-            column: match.index + 1
+            column: match.index + 1,
+            isJSXText: false
         });
     }
 
-    // Pattern for single-quoted strings
+    // Pattern for single-quoted strings (lower priority, usually technical)
     const singleQuoteRegex = /'([^'\\]*(\\.[^'\\]*)*)'/g;
     while ((match = singleQuoteRegex.exec(line)) !== null) {
         strings.push({
             content: match[1],
             line: lineNumber,
-            column: match.index + 1
+            column: match.index + 1,
+            isJSXText: false
         });
     }
 
-    // Pattern for template literals (basic - doesn't handle nested)
+    // Pattern for template literals (can be user-facing in some cases)
     const templateRegex = /`([^`]*)`/g;
     while ((match = templateRegex.exec(line)) !== null) {
         const content = match[1];
@@ -147,20 +188,8 @@ function extractAllStrings(line: string, lineNumber: number): Array<{ content: s
             strings.push({
                 content: content,
                 line: lineNumber,
-                column: match.index + 1
-            });
-        }
-    }
-
-    // Pattern for JSX text content
-    const jsxTextRegex = />([^<{]+)</g;
-    while ((match = jsxTextRegex.exec(line)) !== null) {
-        const content = match[1].trim();
-        if (content.length > 0) {
-            strings.push({
-                content: content,
-                line: lineNumber,
-                column: match.index + 1
+                column: match.index + 1,
+                isJSXText: false
             });
         }
     }
@@ -196,14 +225,48 @@ function isLocalizationKey(content: string): boolean {
 }
 
 /**
- * Check if string is an attribute name (className, id, etc.)
+ * Check if string is a className attribute value
+ * This is the #1 source of false positives - skip ALL className values
+ */
+function isClassNameValue(line: string, column: number, content: string): boolean {
+    const beforeString = line.substring(0, column);
+
+    // Check for className= (React/JSX)
+    if (/className\s*=\s*["']?[^"']*$/.test(beforeString)) {
+        return true;
+    }
+
+    // Check for class= (HTML)
+    if (/\bclass\s*=\s*["']?[^"']*$/.test(beforeString)) {
+        return true;
+    }
+
+    // Check for template literal className
+    if (/className\s*=\s*`[^`]*$/.test(beforeString)) {
+        return true;
+    }
+
+    return false;
+}
+
+/**
+ * Check if string is an attribute name (id, key, etc.)
  */
 function isAttributeName(line: string, column: number): boolean {
     const beforeString = line.substring(0, column);
     const attributePatterns = [
-        /className\s*=\s*$/,
         /\bid\s*=\s*$/,
         /\bkey\s*=\s*$/,
+        /\btarget\s*=\s*$/,
+        /\brel\s*=\s*$/,
+        /\bhref\s*=\s*$/,
+        /\bsrc\s*=\s*$/,
+        /\balt\s*=\s*$/,
+        /\btitle\s*=\s*$/,
+        /\bname\s*=\s*$/,
+        /\btype\s*=\s*$/,
+        /\bvalue\s*=\s*$/,
+        /\bplaceholder\s*=\s*$/,
         /data-[\w-]+\s*=\s*$/,
         /aria-[\w-]+\s*=\s*$/,
     ];
@@ -373,6 +436,18 @@ function shouldIgnoreString(content: string, ignorePatterns: string[], line: str
         return true;
     }
 
+    // Ignore CSS custom properties (CSS variables)
+    if (/^--[a-z][a-z0-9-]*$/i.test(trimmedContent)) {
+        // Like "--avatar-bg", "--primary-color", "--font-size"
+        return true;
+    }
+
+    // Ignore double underscore identifiers (magic constants, special values)
+    if (/^__[a-zA-Z0-9_]+__$/.test(trimmedContent) || /^__[a-zA-Z0-9_]+$/.test(trimmedContent) || /^[a-zA-Z0-9_]+__$/.test(trimmedContent)) {
+        // Like "__clear__", "__name__", "__init__"
+        return true;
+    }
+
     // Ignore ALL_CAPS strings (environment variables, constants)
     if (/^[A-Z_][A-Z0-9_]*$/.test(trimmedContent)) {
         return true;
@@ -420,7 +495,7 @@ function shouldIgnoreString(content: string, ignorePatterns: string[], line: str
         return true;
     }
 
-// Ignore date/time format strings (MM/DD/YYYY, HH:mm:ss, MMMM DD, YYYY etc.)
+    // Ignore date/time format strings (MM/DD/YYYY, HH:mm:ss, MMMM DD, YYYY etc.)
     if (/^[MDYHmsaAzZ/:,.\s-]+$/.test(trimmedContent)) {
         // Check for patterns: has slashes, colons, commas with spaces, or repeated format letters 2+ times
         if (
@@ -431,12 +506,12 @@ function shouldIgnoreString(content: string, ignorePatterns: string[], line: str
             return true;
         }
     }
-    
+
     // Ignore email addresses
     if (/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(trimmedContent)) {
         return true;
     }
-    
+
     // Ignore currency codes/symbols (USD, EUR, $, £, €, NZ$, AU$, etc.)
     if (/^[A-Z]{2,3}\$?$/i.test(trimmedContent) || /^[$£€¥₹₽₩]+$/.test(trimmedContent)) {
         return true;
@@ -496,7 +571,8 @@ function shouldIgnoreString(content: string, ignorePatterns: string[], line: str
         'border-box', 'content-box', 'padding-box',
         'row', 'column', 'row-reverse', 'column-reverse',
         'wrap', 'nowrap', 'wrap-reverse',
-        'start', 'end', 'flex-start', 'flex-end', 'space-between', 'space-around', 'space-evenly'
+        'start', 'end', 'flex-start', 'flex-end', 'space-between', 'space-around', 'space-evenly',
+        '_blank', '_self', '_parent', '_top'
     ];
 
     if (technicalStrings.includes(trimmedContent)) {
@@ -667,12 +743,23 @@ function isCSSPropertyValue(line: string, content: string): boolean {
     // Check if the line looks like a CSS property assignment
     const cssPropertyPattern = /\w+:\s*["']?[^"']+["']?\s*[,;]/;
     if (cssPropertyPattern.test(line)) {
-        // Check if this string is the value
+        // Comprehensive list of CSS properties
         const propertyNames = [
-            'backgroundColor', 'background-color', 'color', 'borderColor', 'border-color',
-            'padding', 'margin', 'width', 'height', 'fontSize', 'font-size', 'fontFamily', 'font-family',
-            'display', 'position', 'flexDirection', 'flex-direction', 'gridTemplate', 'grid-template',
-            'transform', 'transition', 'animation', 'opacity', 'zIndex', 'z-index'
+            'backgroundColor', 'background-color', 'background', 'color', 'borderColor', 'border-color', 'border',
+            'padding', 'margin', 'width', 'height', 'maxWidth', 'max-width', 'minWidth', 'min-width',
+            'maxHeight', 'max-height', 'minHeight', 'min-height',
+            'fontSize', 'font-size', 'fontFamily', 'font-family', 'fontWeight', 'font-weight',
+            'lineHeight', 'line-height', 'letterSpacing', 'letter-spacing',
+            'display', 'position', 'top', 'left', 'right', 'bottom',
+            'flexDirection', 'flex-direction', 'flexWrap', 'flex-wrap', 'flexGrow', 'flex-grow',
+            'gridTemplate', 'grid-template', 'gridTemplateColumns', 'grid-template-columns',
+            'gridTemplateRows', 'grid-template-rows', 'gap', 'rowGap', 'row-gap', 'columnGap', 'column-gap',
+            'transform', 'transition', 'animation', 'opacity', 'visibility',
+            'zIndex', 'z-index', 'overflow', 'overflowX', 'overflow-x', 'overflowY', 'overflow-y',
+            'borderRadius', 'border-radius', 'borderWidth', 'border-width', 'borderStyle', 'border-style',
+            'boxShadow', 'box-shadow', 'textAlign', 'text-align', 'textDecoration', 'text-decoration',
+            'cursor', 'pointerEvents', 'pointer-events', 'userSelect', 'user-select',
+            'content', 'whiteSpace', 'white-space', 'wordBreak', 'word-break', 'textTransform', 'text-transform'
         ];
 
         for (const prop of propertyNames) {
@@ -680,6 +767,13 @@ function isCSSPropertyValue(line: string, content: string): boolean {
                 return true;
             }
         }
+    }
+
+    // Also check for CSS-in-JS object syntax (styled-components, emotion, etc.)
+    // Pattern: propertyName: "value",
+    if (/\s+\w+:\s+["']/.test(line) && line.includes(content)) {
+        // The content is likely a CSS value if the line has a property-like pattern
+        return true;
     }
 
     return false;

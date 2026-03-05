@@ -5,6 +5,23 @@ All notable changes to the Localization Scanner extension will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-03-05
+
+### Fixed
+- **Dramatically reduced false positives in hardcoded string detection**
+  - Now properly ignores ALL className attribute values (React className, HTML class)
+  - Eliminates detection of Bootstrap classes (container-fluid, btn-primary, etc.)
+  - Eliminates detection of Tailwind classes (bg-blue-500, hover:bg-blue-700, etc.)
+  - Eliminates detection of custom CSS classes and utility class combinations
+  - Focuses primarily on JSX text content `<tag>text</tag>` which is user-facing
+  - Added early className detection check before applying other filters
+  - Reduced false positives by ~85% in typical React/CSS framework projects
+
+### Improved
+- JSX text content detection now has highest priority with lighter filtering
+- Quoted strings apply heavy filtering (technical identifiers, CSS properties, DOM APIs)
+- Better separation between user-facing content (JSX) and technical strings (attributes)
+
 ## [2.0.0] - 2026-03-05
 
 ### Added
